@@ -33,19 +33,16 @@ func main() {
 	if connStr == "" {
 		log.Println("DB_SOURCE 환경 변수가 설정되지 않았습니다. 로컬 개발용 개별 환경 변수를 읽습니다.")
 
-		// .env 파일에서 사용하는 개별 변수를 읽어옴
 		dbUser := os.Getenv("POSTGRES_USER")
 		dbPass := os.Getenv("POSTGRES_PASSWORD")
 		dbName := os.Getenv("POSTGRES_DB")
-		dbHost := "localhost" // 로컬 개발은 'localhost'로 고정
-		dbPort := "5432"      // 기본 포트
+		dbHost := "localhost"
+		dbPort := "5432"
 
-		// 필수 정보가 하나라도 없으면 실행 중지
 		if dbUser == "" || dbPass == "" || dbName == "" {
 			log.Fatal("로컬 개발용 환경 변수(POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)가 설정되지 않았습니다. .env 파일을 참조하여 설정해주세요.")
 		}
 
-		// 3. 환경 변수를 조합하여 연결 문자열(connStr)을 생성
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			dbUser, dbPass, dbHost, dbPort, dbName)
 	}
@@ -79,8 +76,9 @@ func main() {
 }
 
 func GetAllStudents(w http.ResponseWriter, r *http.Request) {
-	rows, err := studentsDB.QueryContext(r.Context(), "SELECT id, name, email, borrow_books FROM students")
+	rows, err := studentsDB.QueryContext(r.Context(), "SELECT id, name, email, borrowed_books FROM students")
 	if err != nil {
+		log.Printf("DB 쿼리 실패 (%s): %v", "GetAllStudents", err)
 		http.Error(w, "DB 조회 실패", http.StatusInternalServerError)
 		return
 	}
@@ -98,6 +96,7 @@ func GetAllStudents(w http.ResponseWriter, r *http.Request) {
 
 	jsonData, err := json.Marshal(studentList)
 	if err != nil {
+		log.Printf("DB 쿼리 실패 (%s): %v", "GetAllStudents", err)
 		http.Error(w, "JSON 변환 실패", http.StatusInternalServerError)
 		return
 	}
@@ -125,6 +124,7 @@ func CreateStudent(w http.ResponseWriter, r *http.Request) {
 		pq.Array(newStudent.BorrowedBooks)).Scan(&newStudent.ID)
 
 	if err != nil {
+		log.Printf("DB 저장 실패 (%s): %v", "CreateStudent", err)
 		http.Error(w, "DB 저장 실패", http.StatusInternalServerError)
 		return
 	}
@@ -154,6 +154,7 @@ func GetStudentByID(w http.ResponseWriter, r *http.Request) {
 		if err == sql.ErrNoRows {
 			http.Error(w, "학생을 찾을 수 없음", http.StatusNotFound)
 		} else {
+			log.Printf("DB 조회 실패 (%s): %v", "GetStudentByID", err)
 			http.Error(w, "DB 조회 실패", http.StatusInternalServerError)
 		}
 		return
@@ -189,6 +190,7 @@ func UpdateStudent(w http.ResponseWriter, r *http.Request) {
 		id,
 	)
 	if err != nil {
+		log.Printf("DB 수정 실패 (%s): %v", "UpdateStudent", err)
 		http.Error(w, "DB 수정 실패", http.StatusInternalServerError)
 		return
 	}
@@ -222,6 +224,7 @@ func DeleteStudent(w http.ResponseWriter, r *http.Request) {
 
 	res, err := studentsDB.ExecContext(r.Context(), query, id)
 	if err != nil {
+		log.Printf("DB 수정 실패 (%s): %v", "DeleteStudent", err)
 		http.Error(w, "DB 삭제 실패", http.StatusInternalServerError)
 		return
 	}

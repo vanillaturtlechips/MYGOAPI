@@ -18,13 +18,24 @@ services:
   app:
     container_name: my-go-api
     restart: always
-    build: .
-    ports:
-      - "8080:8080"
+    build: . 
     environment:
-      DB_SOURCE: "postgres://myuser:mypassword@db:5432/mydb?sslmode=disable"
+      DB_SOURCE: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
     depends_on:
       - db
+
+  # 3. 프레젠테이션 티어 (Nginx)
+  web:
+    container_name: my-nginx-web
+    restart: always
+    # 'Dockerfile.nginx' 파일을 사용해 빌드
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - app
 
 volumes:
   postgres-data:
