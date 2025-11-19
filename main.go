@@ -220,7 +220,7 @@ func UpdateStudent(w http.ResponseWriter, r *http.Request) {
 func DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	query := "DELETE FROM students WHERE id -=$1"
+	query := "DELETE FROM students WHERE id =$1"
 
 	res, err := studentsDB.ExecContext(r.Context(), query, id)
 	if err != nil {
